@@ -101,7 +101,7 @@ def add_text(image, config):
   v_text_layer = v_text_layer.transform_rotate(1.57, False, 0, 0)
   v_text_layer.set_offsets(width - size, CROSS_SIZE)
   image.insert_layer(h_text_layer, None, 0)
-  #image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
+  image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
   return CROSS_SIZE // 2
 
 def decorate_image(image, config):
@@ -171,21 +171,25 @@ def clone_run(procedure, run_mode, image, drawables, config, data):
     p_nbr = max_p
     Gimp.message(f"Reduced clone to {p_nbr} pieces")
   Gimp.edit_copy_visible(image)
-  image.delete()
-  new_image = Gimp.Image.new(width, height, 0)
-  for i in range(p_nbr):
-    new_layer = Gimp.Layer.new(new_image, None, width, height,
-                               Gimp.ImageType.RGBA_IMAGE, 100, 0)
-    new_image.insert_layer(new_layer, None, 0)
-    Gimp.floating_sel_anchor(Gimp.edit_paste(new_layer, False)[0])
-    new_layer.set_offsets(i % col_nbr * width,
+  #image.delete()
+  #new_image = Gimp.Image.new(width, height, 0)
+  layers = image.get_layers()
+  selection = None
+  for i in range(1, p_nbr):
+    #new_layer = Gimp.Layer.new(new_image, None, width, height,
+    #                           Gimp.ImageType.RGBA_IMAGE, 100, 0)
+    #new_image.insert_layer(new_layer, None, 0)
+    selection = Gimp.edit_paste(layers[0], False)[0]
+
+    selection.set_offsets(i % col_nbr * width,
                           i // col_nbr * height)
+  Gimp.floating_sel_anchor(selection)
   if clip:
-    new_image.resize_to_layers()
+    image.resize_to_layers()
   else:
-    new_image.resize(canv_width, canv_height, 0, 0)
-  new_image.flatten()
-  Gimp.Display.new(new_image)
+    image.resize(canv_width, canv_height, 0, 0)
+  #image.flatten()
+  Gimp.Display.new(image)
 
   return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, None)
 

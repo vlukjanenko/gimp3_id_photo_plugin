@@ -59,16 +59,16 @@ def create_filename(src_img, new_img, procedure):
 
 def copier_run(procedure, run_mode, image, drawables, config, data):
   width = config.get_property('width')
-  heigth = config.get_property('heigth')
+  height = config.get_property('height')
   guides = config.get_property('guides')
   Gimp.edit_copy_visible(image)
-  new_image = Gimp.Image.new(width, heigth, 0)
-  new_layer = Gimp.Layer.new(new_image, "background", width, heigth, 0, 100, 0)
+  new_image = Gimp.Image.new(width, height, 0)
+  new_layer = Gimp.Layer.new(new_image, "background", width, height, 0, 100, 0)
   new_image.insert_layer(new_layer, None, 0)
   float_layer = Gimp.edit_paste(new_layer, False)
   Gimp.floating_sel_to_layer(float_layer[0])
   new_image.add_hguide(0)
-  new_image.add_hguide(heigth)
+  new_image.add_hguide(height)
   new_image.add_vguide(0)
   new_image.add_vguide(width)
   new_image.add_vguide(int(width / 2))
@@ -115,7 +115,7 @@ class Coppier (Gimp.PlugIn):
   def do_create_procedure(self, name):
     procedure = None
     width = 0
-    heigth = 0
+    height = 0
     guides = ""
     procedure = Gimp.ImageProcedure.new(self, name,
                                           Gimp.PDBProcType.PLUGIN,
@@ -123,70 +123,70 @@ class Coppier (Gimp.PlugIn):
     procedure.set_sensitivity_mask (Gimp.ProcedureSensitivityMask.DRAWABLE)
     procedure.set_documentation (f"Copy visible to size of {name}",
                                    None)
-    procedure.set_attribution("Jehan", "Jehan, ZeMarmot project", "2025")
+    procedure.set_attribution("Majosue", "Majosue", "2025")
     if name == plug_in_proc:
       procedure.add_int_argument     ("width", "width", None,
                                       1, 10000, 100, GObject.ParamFlags.READWRITE)
-      procedure.add_int_argument     ("heigth", "heigth", None,
+      procedure.add_int_argument     ("height", "height", None,
                                       1, 10000, 200, GObject.ParamFlags.READWRITE)
       return procedure
     elif name == plug_in_proc2:
       procedure.set_menu_label("3x4")
       width = 30
-      heigth = 40
+      height = 40
     elif name == plug_in_proc3:
       procedure.set_menu_label("3.5x4.5")
       width = 35
-      heigth = 45
+      height = 45
       guides = "20 60 36 102 400 308 436 355"
     elif name == plug_in_proc4:
       procedure.set_menu_label("Паспорт")
       width = 36
-      heigth = 47
+      height = 47
       guides = "29 0 407 0 454"
     elif name == plug_in_proc5:
       procedure.set_menu_label("4x4")
       width = 40
-      heigth = 40
+      height = 40
     elif name == plug_in_proc6:
       procedure.set_menu_label("6x4")
       width = 40
-      heigth = 60
+      height = 60
     elif name == plug_in_proc7:
       procedure.set_menu_label("6x4.5")
       width = 45
-      heigth = 60
+      height = 60
     elif name == plug_in_proc8:
       procedure.set_menu_label("5x5")
       width = 50
-      heigth = 50
+      height = 50
       guides = "63 0 172 0 259 0 402"
     elif name == plug_in_proc9:
       procedure.set_menu_label("5x4")
       width = 40
-      heigth = 50
+      height = 50
     elif name == plug_in_proc10:
       procedure.set_menu_label("9x12")
       width = 90
-      heigth = 120
+      height = 120
     elif name == plug_in_proc11:
       procedure.set_menu_label("china")
       width = 33
-      heigth = 48
+      height = 48
       guides = "36 59 59 106 367 283 426 330"
     elif name == plug_in_proc12:
       procedure.set_menu_label("2.1x3")
       width = 21
-      heigth = 30
+      height = 30
     elif name == plug_in_proc13:
       procedure.set_menu_label("2.5x3.5")
       width = 25
-      heigth = 35
+      height = 35
 
     procedure.add_int_argument     ("width", "width", None,
                                       1, 10000, mm_to_px(width), GObject.ParamFlags.READABLE)
-    procedure.add_int_argument     ("heigth", "heigth", None,
-                                      1, 10000, mm_to_px(heigth), GObject.ParamFlags.READABLE)
+    procedure.add_int_argument     ("height", "height", None,
+                                      1, 10000, mm_to_px(height), GObject.ParamFlags.READABLE)
     procedure.add_string_argument ("guides", "guides", "String with aux guides even-h odd-v",
                                    guides, GObject.ParamFlags.READABLE)
     procedure.add_menu_path ("<Image>/id photo")
