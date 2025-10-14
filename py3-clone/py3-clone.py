@@ -48,6 +48,7 @@ class DecoratedImage:
     self.__v_text = v_text
     self.__h_text = h_text
     self.__overlap = 0
+    self.__cross_size = 0
 
   def save_image_to_archive(self):
     self.__image.flatten()
@@ -63,13 +64,14 @@ class DecoratedImage:
                   self.__image, file, None)
 
   def add_marks(self):
-    offset = CROSS_SIZE // 2 + 1
+    self.__cross_size = CROSS_SIZE
+    offset = self.__cross_size // 2 + 1
     offset2 = offset - 1
-    cross_layer = Gimp.Layer.new(self.__image, None, CROSS_SIZE, CROSS_SIZE,
+    cross_layer = Gimp.Layer.new(self.__image, None, self.__cross_size, self.__cross_size,
                                 Gimp.ImageType.RGBA_IMAGE, 100, 0)
-    for i in range(CROSS_SIZE):
-      cross_layer.set_pixel(i, CROSS_SIZE / 2, Gegl.Color.new(CROSS_COLOR))
-      cross_layer.set_pixel(CROSS_SIZE / 2, i, Gegl.Color.new(CROSS_COLOR))
+    for i in range(self.__cross_size):
+      cross_layer.set_pixel(i, self.__cross_size / 2, Gegl.Color.new(CROSS_COLOR))
+      cross_layer.set_pixel(self.__cross_size / 2, i, Gegl.Color.new(CROSS_COLOR))
     self.__image.insert_layer(cross_layer, None, 0)
     cross_layer.set_offsets(-offset, -offset)
     cross_layer = cross_layer.copy()
@@ -83,8 +85,8 @@ class DecoratedImage:
     self.__image.insert_layer(cross_layer, None, 0)
     cross_layer.set_offsets(-offset, self.__image.get_height() - offset2)
     self.__image.resize_to_layers()
-    self.__image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
-    self.__overlap = CROSS_SIZE
+    #self.__image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
+    self.__overlap = self.__cross_size
 
   def add_text(self):
     now = datetime.now()
@@ -92,19 +94,19 @@ class DecoratedImage:
     font = Gimp.Font.get_by_name(FONT_NAME)
     size = FONT_SIZE
     unit = Gimp.Unit.pixel()
-    gap = size - (CROSS_SIZE // 2)
+    gap = size - (self.__cross_size // 2)
     width = self.__image.get_width() + gap
     height = self.__image.get_height() + gap
     self.__image.resize(width, height, 0, 0)
     h_text_layer = Gimp.TextLayer.new(self.__image, self.__h_text, font, size, unit)
-    h_text_layer.set_offsets(CROSS_SIZE, height - size)
+    h_text_layer.set_offsets(self.__cross_size, height - size)
     v_text_layer = Gimp.TextLayer.new(self.__image, self.__v_text, font, size, unit)
     self.__image.insert_layer(v_text_layer, None, 0)
     v_text_layer = v_text_layer.transform_rotate(1.57, False, 0, 0)
-    v_text_layer.set_offsets(width - size, CROSS_SIZE)
+    v_text_layer.set_offsets(width - size, self.__cross_size)
     self.__image.insert_layer(h_text_layer, None, 0)
-    self.__image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
-    self.__overlap = CROSS_SIZE // 2
+    #self.__image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
+    self.__overlap = self.__cross_size // 2
 
   def get_overlap(self):
     return self.__overlap
@@ -126,6 +128,7 @@ class Reproducer:
   def get_image(self):
     if not self.__image:
       self.__image = self.__original_image.duplicate()
+      self.__image.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
     return self.__image
 
   def can_fit_image(self):
@@ -164,6 +167,10 @@ class Reproducer:
     return p_nbr
 
   def display(self):
+    new_layer = Gimp.Layer.new(self.__image, None,
+                               self.__image.get_width(), self.__image.get_height(), 0, 100, 0)
+    self.__image.insert_layer(new_layer, None, 1)
+    new_layer.fill(Gimp.FillType.WHITE)
     return Gimp.Display.new(self.get_image())
 
 def mm_to_px(val):
@@ -180,31 +187,40 @@ def run(procedure, run_mode, image, drawables, config, data):
   if run_mode == Gimp.RunMode.INTERACTIVE:
     GimpUi.init(plug_in_binary)
     dialog = GimpUi.ProcedureDialog.new(procedure, config, "Reproduce")
-    box = dialog.fill_box("size-box", ["add_marks", "add_text", "clip_result", "format"])
+    box = dialog.fill_box("size-box", ["add_marks", "add_text", "clip_result"])
     box.set_orientation (Gtk.Orientation.HORIZONTAL)
-    dialog.fill(["p_number", "h_text", "v_text", "size-box"])
+    dialog.fill(["format", "p_number", "h_text", "v_text", "size-box"])
     if not dialog.run():
       dialog.destroy()
       return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, None)
     else:
       dialog.destroy()
-  new_image = DecoratedImage(config.get_property('v_text'),
-                             config.get_property('h_text'), image)
+
+  p_nbr = config.get_property('p_number')
+  marks = config.get_property('add_marks')
+  text = config.get_property('add_text')
+  format_name = config.get_property('format')
+  h_text = config.get_property('h_text')
+  v_text = config.get_property('v_text')
+  canv_width, canv_height = get_canv_size(format_name)
+  new_image = None
+  new_canvas = None
+  result = 0
+
+  new_image = DecoratedImage(v_text, h_text, image)
   new_image.save_image_to_archive()
-  if config.get_property('add_marks'):
+  if marks:
     new_image.add_marks()
-  if config.get_property('add_text'):
+  if text:
     new_image.add_text()
-  #new_image.display()
-  c_width, c_height = get_canv_size(config.get_property('format'))
-  new_canvas = Reproducer(new_image.get_image(), new_image.get_overlap(), c_width, c_height)
+  new_canvas = Reproducer(new_image.get_image(), new_image.get_overlap(),
+                          canv_width, canv_height)
   if not new_canvas.can_fit_image():
     Gimp.message('Source image too big')
     Gimp.PlugIn.quit()
-  p_nbr = config.get_property('p_number')
   result = new_canvas.reproduce(p_nbr, config.get_property('clip_result'))
   if result != p_nbr:
-    Gimp.message("Nuber reduced")
+    Gimp.message("Number of copies reduced")
   new_canvas.display()
   return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, None)
 
@@ -235,9 +251,9 @@ class Clone (Gimp.PlugIn):
                                    True, GObject.ParamFlags.READWRITE)
       procedure.add_boolean_argument ("clip_result", "Clip result", "clip result",
                                    True, GObject.ParamFlags.READWRITE)
-      procedure.add_choice_argument ("format",  "|", "canvas",
+      procedure.add_choice_argument ("format",  "Paper format", "canvas",
                                    formats, "A4", GObject.ParamFlags.READWRITE)
-    procedure.add_menu_path ("<Image>/id photo")
+    procedure.add_menu_path ("<Image>/i_d photo")
     return procedure
 
 Gimp.main(Clone.__gtype__, sys.argv)

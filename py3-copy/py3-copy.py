@@ -10,11 +10,7 @@ from gi.repository import GObject
 from gi.repository import GLib
 from gi.repository import Gtk
 from gi.repository import Gio
-from datetime import datetime
 import sys
-import os
-from pathlib import Path
-
 
 plug_in_proc = "plug-in-copy-to-box"
 
@@ -31,31 +27,8 @@ plug_in_proc11 = "china"
 plug_in_proc12 = "25x35"
 plug_in_proc13 = "21x30"
 
-plug_in_binary = "py3-to-box"
-
 def mm_to_px(val):
   return int(val * 11.811)
-
-def create_filename(src_img, new_img, procedure):
-  save_directory = f"{Path.home()}\Desktop\\arch_photo"
-  src_file = src_img.get_file()
-  name = ""
-  if src_file:
-    name = Path(src_file.get_basename()).stem
-  else:
-    now = datetime.now()
-    name = now.strftime("%Y-%m-%d-%H-%M-%S")
-  #os.makedirs(save_directory,  exist_ok=True)
-  file_name = f"{save_directory}\\{name}.jpg"
-  file = Gio.File.new_for_path(file_name)
-  new_img.set_file(file)
- # Gimp.message(f"base name src image is {src_file.get_basename()}")
-
- # result = Gimp.file_save(Gimp.RunMode.NONINTERACTIVE,
- #                new_img, file, None)
- # Gimp.message(f"new_img name{new_img.get_name()}")
- # Gimp.message(f"src_img name{src_img.name}")
-
 
 def copier_run(procedure, run_mode, image, drawables, config, data):
   width = config.get_property('width')
@@ -63,8 +36,9 @@ def copier_run(procedure, run_mode, image, drawables, config, data):
   guides = config.get_property('guides')
   Gimp.edit_copy_visible(image)
   new_image = Gimp.Image.new(width, height, 0)
-  new_layer = Gimp.Layer.new(new_image, "background", width, height, 0, 100, 0)
+  new_layer = Gimp.Layer.new(new_image, None, width, height, 0, 100, 0)
   new_image.insert_layer(new_layer, None, 0)
+  new_layer.fill(Gimp.FillType.WHITE)
   float_layer = Gimp.edit_paste(new_layer, False)
   Gimp.floating_sel_to_layer(float_layer[0])
   new_image.add_hguide(0)
@@ -79,29 +53,7 @@ def copier_run(procedure, run_mode, image, drawables, config, data):
         new_image.add_vguide(int(str_values[i]))
       else:
         new_image.add_hguide(int(str_values[i]))
-  #name = Gio.File.new_build_filenamev("tttttest.xcf")
-  #new_image.set_file(name)
-  #Gimp.message(f"{home}")
-  create_filename(image, new_image, procedure)
   Gimp.Display.new(new_image)
-  #
-  #u = GimpUi.Ruler.get_unit()
-  #r = GimpUi.Ruler.new(Gtk.Orientation(1))
-  #r.set_unit(Gimp.Unit.mm())
-  #new_image.set_unit(Gimp.Unit.mm())
-  #display =
-  #new_image.set_unit(Gimp.Unit.mm())
-  #Gimp.message(new_image.get_unit().get_name())
-  #Gimp.message(f"{r.get_position()}")
-  #Gimp.message(f"{r.get_unit().get_name()}")
-  #u_box = GimpUi.UnitComboBox.new()
-  #u_box.set_active(Gimp.Unit.mm())
-  #Gimp.message(f"{u_box.get_active().get_name()}")
-  #Gimp.message(f"{display.get_window_handle()}")
-  #gtk_list = Gtk.Window.list_toplevels()
-  #Gimp.message(f"{gtk_list[0].maximaze()}")
-  #Gimp.displays_flush()
-
   return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, None)
 
 class Coppier (Gimp.PlugIn):
@@ -140,7 +92,7 @@ class Coppier (Gimp.PlugIn):
       height = 45
       guides = "20 60 36 102 400 308 436 355"
     elif name == plug_in_proc4:
-      procedure.set_menu_label("Паспорт")
+      procedure.set_menu_label("passport")
       width = 36
       height = 47
       guides = "29 0 407 0 454"
@@ -189,7 +141,7 @@ class Coppier (Gimp.PlugIn):
                                       1, 10000, mm_to_px(height), GObject.ParamFlags.READABLE)
     procedure.add_string_argument ("guides", "guides", "String with aux guides even-h odd-v",
                                    guides, GObject.ParamFlags.READABLE)
-    procedure.add_menu_path ("<Image>/id photo")
+    procedure.add_menu_path ("<Image>/i_d photo")
     return procedure
 
 Gimp.main(Coppier.__gtype__, sys.argv)
