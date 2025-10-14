@@ -159,7 +159,7 @@ class Reproducer:
       selection = Gimp.edit_paste(layers[0], False)[0]
       selection.set_offsets(i % col_nbr * width,
                             i // col_nbr * height)
-    Gimp.floating_sel_anchor(selection)
+      Gimp.floating_sel_anchor(selection)
     if clip:
       image.resize_to_layers()
     else:
