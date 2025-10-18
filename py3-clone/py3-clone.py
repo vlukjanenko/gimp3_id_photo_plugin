@@ -19,6 +19,9 @@ import sys
 import os
 from pathlib import Path
 
+def N_(message): return message
+def _(message): return GLib.dgettext(None, message)
+
 plug_in_proc = "plug-in-clone"
 
 plug_in_binary = "py3-clone"
@@ -135,6 +138,28 @@ class Reproducer:
     return self.__canv_width - self.__original_image.get_width() > 0 \
             and self.__canv_height - self.__original_image.get_height() > 0
 
+  def reproduce_unlimited(self, col_nbr, row_nbr):
+    image = self.get_image()
+    width = image.get_width() - self.__overlap
+    height = image.get_height() - self.__overlap
+    p_nbr = col_nbr * row_nbr
+    Gimp.edit_copy_visible(image)
+    layers = image.get_layers()
+    selection = None
+    for i in range(1, p_nbr):
+      selection = Gimp.edit_paste(layers[0], False)[0]
+      selection.set_offsets(i % col_nbr * width,
+                            i // col_nbr * height)
+      Gimp.floating_sel_anchor(selection)
+      image.resize_to_layers()
+
+  def display(self):
+    new_layer = Gimp.Layer.new(self.__image, None,
+                               self.__image.get_width(), self.__image.get_height(), 0, 100, 0)
+    self.__image.insert_layer(new_layer, None, 1)
+    new_layer.fill(Gimp.FillType.WHITE)
+    return Gimp.Display.new(self.get_image())
+
   def reproduce(self, p_nbr, clip):
 
     image = self.get_image()
@@ -186,10 +211,23 @@ def run(procedure, run_mode, image, drawables, config, data):
 
   if run_mode == Gimp.RunMode.INTERACTIVE:
     GimpUi.init(plug_in_binary)
-    dialog = GimpUi.ProcedureDialog.new(procedure, config, "Reproduce")
-    box = dialog.fill_box("size-box", ["add_marks", "add_text", "clip_result"])
+    dialog = GimpUi.ProcedureDialog.new(procedure, config, _("Reproduce"))
+    format = dialog.get_widget("format", GObject.TYPE_NONE)
+    format.set_hexpand(False)
+    """ arr = Gimp.ValueArray.new(1)
+    g_value = GObject.Value()
+    g_value.init(GObject.TYPE_INT)
+    g_value.set_int(3)
+    #arr[0].init(GObject.TYPE_INT)
+    arr.append(g_value)
+    dialog.set_sensitive_if_in("format", None, "rows_number", arr, False) """
+    box = dialog.fill_box("size-box", ["add_marks", "add_text", "clip_result", "format"])
+    expander = dialog.fill_expander("expander", None, False, "size-box")
+    box2 = dialog.fill_box("box", ["p_number", "rows_number"])
+    box2.set_orientation (Gtk.Orientation.VERTICAL)
+    box2.set_spacing(20)
     box.set_orientation (Gtk.Orientation.HORIZONTAL)
-    dialog.fill(["format", "p_number", "h_text", "v_text", "size-box"])
+    dialog.fill(["h_text", "v_text",  "box", "expander"])
     if not dialog.run():
       dialog.destroy()
       return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, None)
@@ -197,6 +235,7 @@ def run(procedure, run_mode, image, drawables, config, data):
       dialog.destroy()
 
   p_nbr = config.get_property('p_number')
+  r_nbr = config.get_property('rows_number')
   marks = config.get_property('add_marks')
   text = config.get_property('add_text')
   format_name = config.get_property('format')
@@ -215,16 +254,23 @@ def run(procedure, run_mode, image, drawables, config, data):
     new_image.add_text()
   new_canvas = Reproducer(new_image.get_image(), new_image.get_overlap(),
                           canv_width, canv_height)
-  if not new_canvas.can_fit_image():
-    Gimp.message('Source image too big')
-    Gimp.PlugIn.quit()
-  result = new_canvas.reproduce(p_nbr, config.get_property('clip_result'))
-  if result != p_nbr:
-    Gimp.message("Number of copies reduced")
+  if not r_nbr:
+    if not new_canvas.can_fit_image():
+      Gimp.message(_("The image is too big"))
+      Gimp.PlugIn.quit()
+    result = new_canvas.reproduce(p_nbr, config.get_property('clip_result'))
+    if result != p_nbr:
+      Gimp.message(_("The number of copies has been reduced"))
+  else:
+    new_canvas.reproduce_unlimited(p_nbr, r_nbr)
   new_canvas.display()
   return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, None)
 
 class Clone (Gimp.PlugIn):
+
+  def do_set_i18n(self, procname):
+    return True, 'ru', None
+
   def do_query_procedures(self):
     return [ plug_in_proc ]
 
@@ -234,26 +280,28 @@ class Clone (Gimp.PlugIn):
                                           Gimp.PDBProcType.PLUGIN,
                                           run, None)
     procedure.set_sensitivity_mask (Gimp.ProcedureSensitivityMask.DRAWABLE)
-    procedure.set_documentation (f"Do with visible to {name}",
+    procedure.set_documentation (_("Replicates an image within a given format"),
                                    None)
-    procedure.set_attribution("Majosue", "Majosue, Majosue", "2025")
+    procedure.set_attribution("Vladislav Lukianenko <majosue@student.42.fr>", "majosue", "2025")
     if name == plug_in_proc:
       procedure.set_menu_label("clone")
-      procedure.add_int_argument     ("p_number", "Number", None,
+      procedure.add_int_argument     ("p_number", _("Number"), _("Number of copies / columns"),
                                       1, 10000, 8, GObject.ParamFlags.READWRITE)
-      procedure.add_string_argument ("v_text", "V label", "String with text",
+      procedure.add_int_argument     ("rows_number", _("Number of rows"), _("Number of rows"),
+                                      0, 10000, 0, GObject.ParamFlags.READWRITE)
+      procedure.add_string_argument ("v_text", _("V. text"), _("Vertical text"),
                                    "Моментальное фото оцифровка видео", GObject.ParamFlags.READWRITE)
-      procedure.add_string_argument ("h_text", "H label", "String with text",
+      procedure.add_string_argument ("h_text", _("H. text"), _("Horizontal text"),
                                    "Мира 37Б", GObject.ParamFlags.READWRITE)
-      procedure.add_boolean_argument ("add_marks", "Cut marks", "add cut marks",
+      procedure.add_boolean_argument ("add_marks", _("Add cut marks"), _("Add cut marks"),
                                    True, GObject.ParamFlags.READWRITE)
-      procedure.add_boolean_argument ("add_text", "Add labels", "Add text",
+      procedure.add_boolean_argument ("add_text", _("Add text"), _("Add text"),
                                    True, GObject.ParamFlags.READWRITE)
-      procedure.add_boolean_argument ("clip_result", "Clip result", "clip result",
+      procedure.add_boolean_argument ("clip_result", _("Clip to result"), _("Clip to result"),
                                    True, GObject.ParamFlags.READWRITE)
-      procedure.add_choice_argument ("format",  "Paper format", "canvas",
+      procedure.add_choice_argument ("format",  _("Paper format"), _("Paper format"),
                                    formats, "A4", GObject.ParamFlags.READWRITE)
-    procedure.add_menu_path ("<Image>/i_d photo")
+    procedure.add_menu_path (_("<Image>/i_d photo"))
     return procedure
 
 Gimp.main(Clone.__gtype__, sys.argv)
