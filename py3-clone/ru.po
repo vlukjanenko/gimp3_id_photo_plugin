@@ -1,0 +1,90 @@
+# Russian translations for PACKAGE package.
+# Copyright (C) 2025 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Vladislav Lukianenko <majosue@student.42.fr>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-18 19:13+0300\n"
+"PO-Revision-Date: 2025-10-18 19:14+0300\n"
+"Last-Translator: Vladislav Lukianenko <majosue@student.42.fr>\n"
+"Language-Team: Russian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: .\py3-clone.py:32
+msgid "Unlimited"
+msgstr "Неограниченно"
+
+#: .\py3-clone.py:220
+msgid "Reproduce"
+msgstr "Размножить"
+
+#: .\py3-clone.py:260
+msgid "The image is too big"
+msgstr "Изображение слишком большое"
+
+#: .\py3-clone.py:265 .\py3-clone.py:269
+msgid "The number of copies has been reduced"
+msgstr "Количество копий было уменьшено"
+
+#: .\py3-clone.py:287
+msgid "Replicates an image within a given format"
+msgstr "Размножает изображение в заданном формате"
+
+#: .\py3-clone.py:292
+msgid "Number of columns"
+msgstr "Количество столбцов"
+
+#: .\py3-clone.py:291
+msgid "clone"
+msgstr "Размножить"
+
+#: .\py3-clone.py:292
+msgid "Number of copies / columns"
+msgstr "Количество копий / колонок"
+
+#: .\py3-clone.py:294
+msgid "Number of rows"
+msgstr "Количество строк"
+
+#: .\py3-clone.py:296
+msgid "V. text"
+msgstr "В. текст"
+
+#: .\py3-clone.py:296
+msgid "Vertical text"
+msgstr "Вертикальный текст"
+
+#: .\py3-clone.py:298
+msgid "H. text"
+msgstr "Г. текст"
+
+#: .\py3-clone.py:298
+msgid "Horizontal text"
+msgstr "Горизонтальный текст"
+
+#: .\py3-clone.py:300
+msgid "Add cut marks"
+msgstr "метки для обрезки"
+
+#: .\py3-clone.py:302
+msgid "Add text"
+msgstr "текст"
+
+#: .\py3-clone.py:304
+msgid "Clip to result"
+msgstr "кадрировать"
+
+#: .\py3-clone.py:306
+msgid "Paper format"
+msgstr "Формат"
+
+#: .\py3-clone.py:308
+msgid "<Image>/i_d photo"
+msgstr "<Image>/Фото на документы"

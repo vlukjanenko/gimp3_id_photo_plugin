@@ -29,11 +29,13 @@ plug_in_binary = "py3-clone"
 SAVE_DIR = f"{Path.home()}\Desktop\\arch_photo"
 
 formats = Gimp.Choice.new()
-formats.add("A4", 0, "A4", "for A4")
-formats.add("A5", 1, "A5", "for A5")
-formats.add("A6", 2, "A6", "for A6")
+formats.add("unlimited", 0, _("Unlimited"), "for Unlimited")
+formats.add("A4", 1, "A4", "for A4")
+formats.add("A5", 2, "A5", "for A5")
+formats.add("A6", 3, "A6", "for A6")
 
 FORMATS = [
+  (Gimp.MAX_IMAGE_SIZE, Gimp.MAX_IMAGE_SIZE),
   (210, 297),
   (148, 210),
   (105, 148)
@@ -142,16 +144,21 @@ class Reproducer:
     image = self.get_image()
     width = image.get_width() - self.__overlap
     height = image.get_height() - self.__overlap
-    p_nbr = col_nbr * row_nbr
     Gimp.edit_copy_visible(image)
     layers = image.get_layers()
     selection = None
+    if col_nbr > self.__canv_width // width:
+      col_nbr = self.__canv_width // width
+    if row_nbr > self.__canv_height // height:
+      row_nbr = self.__canv_height // height
+    p_nbr = col_nbr * row_nbr
     for i in range(1, p_nbr):
       selection = Gimp.edit_paste(layers[0], False)[0]
       selection.set_offsets(i % col_nbr * width,
                             i // col_nbr * height)
       Gimp.floating_sel_anchor(selection)
-      image.resize_to_layers()
+    image.resize_to_layers()
+    return p_nbr
 
   def display(self):
     new_layer = Gimp.Layer.new(self.__image, None,
@@ -208,24 +215,16 @@ def get_canv_size(format_nick):
   return canv_width, canv_height
 
 def run(procedure, run_mode, image, drawables, config, data):
-
   if run_mode == Gimp.RunMode.INTERACTIVE:
     GimpUi.init(plug_in_binary)
     dialog = GimpUi.ProcedureDialog.new(procedure, config, _("Reproduce"))
     format = dialog.get_widget("format", GObject.TYPE_NONE)
     format.set_hexpand(False)
-    """ arr = Gimp.ValueArray.new(1)
-    g_value = GObject.Value()
-    g_value.init(GObject.TYPE_INT)
-    g_value.set_int(3)
-    #arr[0].init(GObject.TYPE_INT)
-    arr.append(g_value)
-    dialog.set_sensitive_if_in("format", None, "rows_number", arr, False) """
     box = dialog.fill_box("size-box", ["add_marks", "add_text", "clip_result", "format"])
-    expander = dialog.fill_expander("expander", None, False, "size-box")
+    dialog.fill_expander("expander", None, False, "size-box")
     box2 = dialog.fill_box("box", ["p_number", "rows_number"])
-    box2.set_orientation (Gtk.Orientation.VERTICAL)
-    box2.set_spacing(20)
+    box2.set_orientation (Gtk.Orientation.HORIZONTAL)
+    box.set_spacing(20)
     box.set_orientation (Gtk.Orientation.HORIZONTAL)
     dialog.fill(["h_text", "v_text",  "box", "expander"])
     if not dialog.run():
@@ -242,6 +241,9 @@ def run(procedure, run_mode, image, drawables, config, data):
   h_text = config.get_property('h_text')
   v_text = config.get_property('v_text')
   canv_width, canv_height = get_canv_size(format_name)
+  clip = True
+  if format_name != "unlimited":
+    clip = config.get_property('clip_result')
   new_image = None
   new_canvas = None
   result = 0
@@ -254,15 +256,17 @@ def run(procedure, run_mode, image, drawables, config, data):
     new_image.add_text()
   new_canvas = Reproducer(new_image.get_image(), new_image.get_overlap(),
                           canv_width, canv_height)
-  if not r_nbr:
-    if not new_canvas.can_fit_image():
+  if not new_canvas.can_fit_image():
       Gimp.message(_("The image is too big"))
       Gimp.PlugIn.quit()
-    result = new_canvas.reproduce(p_nbr, config.get_property('clip_result'))
+  if not r_nbr:
+    result = new_canvas.reproduce(p_nbr, clip)
     if result != p_nbr:
       Gimp.message(_("The number of copies has been reduced"))
   else:
-    new_canvas.reproduce_unlimited(p_nbr, r_nbr)
+    result = new_canvas.reproduce_unlimited(p_nbr, r_nbr)
+    if result != p_nbr * r_nbr:
+      Gimp.message(_("The number of copies has been reduced"))
   new_canvas.display()
   return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, None)
 
@@ -284,8 +288,8 @@ class Clone (Gimp.PlugIn):
                                    None)
     procedure.set_attribution("Vladislav Lukianenko <majosue@student.42.fr>", "majosue", "2025")
     if name == plug_in_proc:
-      procedure.set_menu_label("clone")
-      procedure.add_int_argument     ("p_number", _("Number"), _("Number of copies / columns"),
+      procedure.set_menu_label(_("clone"))
+      procedure.add_int_argument     ("p_number", _("Number of columns"), _("Number of copies / columns"),
                                       1, 10000, 8, GObject.ParamFlags.READWRITE)
       procedure.add_int_argument     ("rows_number", _("Number of rows"), _("Number of rows"),
                                       0, 10000, 0, GObject.ParamFlags.READWRITE)
