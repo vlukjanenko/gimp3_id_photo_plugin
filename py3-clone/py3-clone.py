@@ -161,20 +161,18 @@ class Reproducer:
     return p_nbr
 
   def display(self):
-    new_layer = Gimp.Layer.new(self.__image, None,
-                               self.__image.get_width(), self.__image.get_height(), 0, 100, 0)
-    self.__image.insert_layer(new_layer, None, 1)
-    new_layer.fill(Gimp.FillType.WHITE)
-    return Gimp.Display.new(self.get_image())
+    new_layer = self.__image.get_layers()[0].copy()
+    self.__image.insert_layer(new_layer, None, -1)
+    self.__image.get_layers()[1].resize_to_image_size()
+    self.__image.get_layers()[1].fill(Gimp.FillType.WHITE)
+    Gimp.Display.new(self.get_image())
 
   def reproduce(self, p_nbr, clip):
-
     image = self.get_image()
     width = image.get_width() - self.__overlap
     height = image.get_height() - self.__overlap
     col_nbr = self.__canv_width // width
     row_nbr = self.__canv_height // height
-
     if col_nbr and col_nbr * width + self.__overlap > self.__canv_width:
       col_nbr = col_nbr - 1
     if row_nbr and row_nbr * height + self.__overlap > self.__canv_height:
@@ -197,13 +195,6 @@ class Reproducer:
     else:
       image.resize(self.__canv_width, self.__canv_height, 0, 0)
     return p_nbr
-
-  def display(self):
-    new_layer = Gimp.Layer.new(self.__image, None,
-                               self.__image.get_width(), self.__image.get_height(), 0, 100, 0)
-    self.__image.insert_layer(new_layer, None, 1)
-    new_layer.fill(Gimp.FillType.WHITE)
-    return Gimp.Display.new(self.get_image())
 
 def mm_to_px(val):
   return int(val * 11.811)
