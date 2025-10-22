@@ -4,3 +4,7 @@
 - Saves the photo to an archive
 
 ![demo](./demo.gif)
+
+# How to install
+For windows
+copy folders from repo to C:\Users\{your_id}\AppData\Roaming\GIMP\3.0\plug-ins
